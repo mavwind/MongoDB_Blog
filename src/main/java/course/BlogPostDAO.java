@@ -22,8 +22,7 @@ public class BlogPostDAO {
     // Return a single post corresponding to a permalink
     public Document findByPermalink(String permalink) {
 
-        Document post = null;
-        post = postsCollection.find(Filters.eq("permalink", permalink)).first();
+        Document post = postsCollection.find(Filters.eq("permalink", permalink)).first();
 
 
         return post;
@@ -40,6 +39,13 @@ public class BlogPostDAO {
                 .limit(limit)
                 .into(new ArrayList<Document>());
         return posts;
+    }
+
+    public List<Document> findByTagDateDescending(final String tag) {
+        return postsCollection.find(Filters.eq("tags", tag))
+                .sort(Sorts.descending("date"))
+                .limit(10)
+                .into(new ArrayList<Document>());
     }
 
 
@@ -61,7 +67,13 @@ public class BlogPostDAO {
                 .append("comments", Arrays.asList())
                 .append("date", new Date());
 
-        postsCollection.insertOne(post);
+        try {
+            postsCollection.insertOne(post);
+            System.out.println("Inserting blog post with permalink " + permalink);
+        } catch (Exception e) {
+            System.out.println("Error inserting post");
+            return null;
+        }
 
 
         return permalink;

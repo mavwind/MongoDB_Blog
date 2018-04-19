@@ -57,8 +57,12 @@ public class SessionDAO {
         String sessionID = encoder.encode(randomBytes);
 
         // build the BSON object
-        Document session = new Document("username", username)
-                           .append("_id", sessionID);
+        Document session = new Document("username", username);
+
+        session.append("_id", sessionID);
+
+        sessionsCollection.deleteMany(
+                new Document("username",username));
 
         sessionsCollection.insertOne(session);
 
