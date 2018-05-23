@@ -1,5 +1,6 @@
 package course;
 
+import com.mongodb.BasicDBObject;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
@@ -24,6 +25,15 @@ public class BlogPostDAO {
 
         Document post = postsCollection.find(Filters.eq("permalink", permalink)).first();
 
+        // fix up if a post has no likes
+        if (post != null) {
+            List<Document> comments = (List<Document>) post.get("comments");
+            for (Document comment : comments) {
+                if (!comment.containsKey("num_likes")) {
+                    comment.put("num_likes", 0);
+                }
+            }
+        }
 
         return post;
     }
@@ -33,19 +43,17 @@ public class BlogPostDAO {
     public List<Document> findByDateDescending(int limit) {
 
          // Return a list of DBObjects, each one a post from the posts collection
-        List<Document> posts = null;
-        posts = postsCollection.find()
+        return postsCollection.find()
                 .sort(Sorts.descending("date"))
                 .limit(limit)
-                .into(new ArrayList<Document>());
-        return posts;
+                .into(new ArrayList<>());
     }
 
     public List<Document> findByTagDateDescending(final String tag) {
         return postsCollection.find(Filters.eq("tags", tag))
                 .sort(Sorts.descending("date"))
                 .limit(10)
-                .into(new ArrayList<Document>());
+                .into(new ArrayList<>());
     }
 
 
@@ -64,7 +72,7 @@ public class BlogPostDAO {
                 .append("body", body)
                 .append("permalink", permalink)
                 .append("tags", tags)
-                .append("comments", Arrays.asList())
+                .append("comments", new ArrayList())
                 .append("date", new Date());
 
         try {
@@ -85,15 +93,18 @@ public class BlogPostDAO {
     public void addPostComment(final String name, final String email, final String body,
                                final String permalink) {
 
-
-        Document comment = new Document();
-
-        comment.append("author", name)
+        Document comment = new Document("author", name)
                 .append("body", body);
-        if (email != null && !email.equals("")) {
+        if (email != null && !email.isEmpty()) {
             comment.append("email", email);
         }
         postsCollection.updateOne(Filters.eq("permalink", permalink),
                 Updates.push("comments", comment));
+    }
+
+    public void likePost(final String permalink, final int ordinal) {
+
+        postsCollection.updateOne(new BasicDBObject("permalink", permalink),
+                new BasicDBObject("$inc", new BasicDBObject("comments." + ordinal + ".num_likes", 1)));
     }
 }
